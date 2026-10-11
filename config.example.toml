@@ -23,4 +23,3 @@ default_depth = "standard"
 [debug]
 log_search_sources = true
 log_raw_summary = false
-enable_test_commands = true

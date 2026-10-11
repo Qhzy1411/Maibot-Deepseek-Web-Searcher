@@ -18,7 +18,7 @@
 - `maibot-plugin-sdk>=2.5.2,<3.0.0`。
 - `anthropic>=0.104.0,<1.0.0`。
 
-使用根目录 `plugin.py` 的 `create_plugin()` 工厂和 SDK 的 `@Tool` / `@Command` 注册组件。manifest v2 请求 `send.text` 能力，用于发送搜索测试结果。
+使用根目录 `plugin.py` 的 `create_plugin()` 工厂和 SDK 的 `@Tool` 注册工具。manifest v2 声明插件类型为 `integration`，能力请求列表为空。
 
 将发布包解压至 `plugins/deepseek-web-searcher/`，保证 `plugin.py` 和 `_manifest.json` 直接位于该目录。依赖应安装到 **MaiBot 实际运行的 Python 环境**，例如在宿主使用的 uv 项目中执行：
 
@@ -41,13 +41,12 @@ uv pip install --python <MaiBot使用的Python路径> "anthropic>=0.104.0,<1.0.0
 | model | model_choice | 默认 `deepseek-flash`，可选择 `deepseek-v4-pro`。 |
 | model | max_tokens | `4096`；检索摘要输出上限。 |
 | model | request_timeout_seconds | `120`；包含排队；SDK 自动重试关闭。 |
-| search | enabled | `true`；关闭后搜索、网页查看和搜索测试均不请求 API。 |
+| search | enabled | `true`；关闭后搜索和网页查看均不请求 API。 |
 | search | web_search_tool | 默认 `web_search_20260209`，可选择 `web_search_20250305`。 |
 | search | max_search_uses | `5`；每请求最多搜索次数，范围 1–20。 |
 | search | default_depth | `standard`；quick 最多 2 次、standard 最多 3 次、deep 使用管理员上限。 |
 | debug | log_search_sources | `true`；来源写入日志，可能含 URL 查询参数。 |
 | debug | log_raw_summary | `false`；开启后记录耗时、token 和停止原因，不记录完整提示词或回答。 |
-| debug | enable_test_commands | `true`；控制搜索测试命令。 |
 
 搜索范围是传给后端的偏好，不是硬过滤。所有档位固定关闭思考。每次搜索在出队后附加服务器本地时间与 UTC 偏移，部署时请确认服务器时间正确。
 
@@ -60,13 +59,7 @@ uv pip install --python <MaiBot使用的Python路径> "anthropic>=0.104.0,<1.0.0
 打开 https://example.com/article 看看主要讲了什么。
 ```
 
-验证当前密钥、模型和搜索工具：
-
-```text
-/deepseek_search_test DeepSeek 官方网站
-```
-
-命令返回搜索结果或错误提示。没有搜索结果、来源不匹配、搜索服务错误或输出截断都会明确提示。
+工具返回检索摘要或错误提示。没有搜索结果、来源不匹配、搜索服务错误或输出截断都会明确提示。
 
 ## 网页查看边界
 

@@ -27,6 +27,7 @@
     {"type": "python_package", "name": "anthropic", "version_spec": ">=0.104.0,<1.0.0"},
     {"type": "python_package", "name": "maibot-plugin-sdk", "version_spec": ">=2.5.2,<3.0.0"}
   ],
-  "capabilities": ["send.text"],
+  "plugin_type": "integration",
+  "capabilities": [],
   "i18n": {"default_locale": "zh-CN", "supported_locales": ["zh-CN"]}
 }

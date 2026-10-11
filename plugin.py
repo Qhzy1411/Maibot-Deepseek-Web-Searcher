@@ -11,7 +11,7 @@ import json
 import os
 import time
 
-from maibot_sdk import Command, Field, MaiBotPlugin, PluginConfigBase, Tool
+from maibot_sdk import Field, MaiBotPlugin, PluginConfigBase, Tool
 from maibot_sdk.types import ToolParameterInfo, ToolParamType
 
 PLUGIN_VERSION = "1.0.1"
@@ -132,10 +132,10 @@ class PluginSectionConfig(PluginConfigBase):
 
     enabled: bool = Field(
         default=True,
-        description="关闭后，插件所有 Tool 和命令均不可用。",
+        description="关闭后，插件所有工具均不可用。",
         json_schema_extra={
             "label": "启用插件",
-            "hint": "关闭后，联网搜索、网页查看和搜索测试命令均不可用。",
+            "hint": "关闭后，联网搜索和网页查看均不可用。",
             "x-widget": "switch",
         },
     )
@@ -235,7 +235,7 @@ class SearchConfig(PluginConfigBase):
 
     enabled: bool = Field(
         default=True,
-        description="关闭后，搜索、网页查看及搜索测试均不发送 API 请求。",
+        description="关闭后，搜索和网页查看均不发送 API 请求。",
         json_schema_extra={
             "label": "允许联网搜索",
             "hint": "搜索与网页查看共用这个开关；主模型自行决定何时调用工具。",
@@ -244,10 +244,10 @@ class SearchConfig(PluginConfigBase):
     )
     web_search_tool: Literal["web_search_20260209", "web_search_20250305"] = Field(
         default=WEB_SEARCH_TOOL_20260209,
-        description="请求使用的 Anthropic 网页搜索工具版本，需通过真实搜索测试确认兼容性。",
+        description="请求使用的 Anthropic 网页搜索工具版本。",
         json_schema_extra={
             "label": "搜索工具版本",
-            "hint": "默认使用新版工具；不同账号支持情况可能不同，请用搜索测试命令验证。",
+            "hint": "默认使用新版工具，请根据账号支持情况选择。",
             "x-widget": "select",
         },
     )
@@ -297,15 +297,6 @@ class DebugConfig(PluginConfigBase):
             "hint": "记录模型、停止原因、token 数、请求标识和耗时，不记录完整回答。",
             "x-widget": "switch",
             "advanced": True,
-        },
-    )
-    enable_test_commands: bool = Field(
-        default=True,
-        description="开启后可使用 /deepseek_search_test 关键词验证真实搜索。",
-        json_schema_extra={
-            "label": "启用测试命令",
-            "hint": "测试也必须执行搜索，没有纯模型连通性测试。",
-            "x-widget": "switch",
         },
     )
 
@@ -751,7 +742,7 @@ class _PendingRequest:
 
 
 class DeepSeekWebSearcherPlugin(MaiBotPlugin):
-    """仅注册搜索、网页查看与搜索诊断命令。"""
+    """注册联网搜索与网页查看工具。"""
 
     config_model = DeepSeekWebSearcherConfig
 
@@ -913,7 +904,7 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
     ) -> str:
         """通过 Anthropic SDK 调用 DeepSeek，返回提取后的文本内容。
 
-        这是所有 Tool 和命令共用的后端管道。
+        这是所有工具共用的后端管道。
         """
 
         if self._closing or not self.config.plugin.enabled:
@@ -1333,41 +1324,6 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
             }
 
         return {"name": "fetch_page", "content": result}
-
-    # ================================================================
-    # 测试命令
-    # ================================================================
-
-    @Command(
-        "deepseek_search_test",
-        description="测试 Deepseek联网搜索是否可用",
-        pattern=r"^/deepseek_search_test(?:\s+(.+))?$",
-    )
-    async def handle_search_test(self, stream_id: str = "", **kwargs: Any):
-        if not self.config.debug.enable_test_commands:
-            return False, "测试命令已在插件配置中关闭", True
-        if not self.config.search.enabled:
-            return False, "联网搜索已在插件配置中关闭", True
-        text = str(kwargs.get("text") or "").strip()
-        query = (
-            text.removeprefix("/deepseek_search_test").strip() or "DeepSeek 官方网站"
-        )
-
-        tools = _build_web_search_tools(self.config, max_uses=2)
-        try:
-            result = await self._call_deepseek(
-                user_prompt=f"请联网搜索并用一句话回答：{query}",
-                system="你是 MaiBot 搜索测试助手。",
-                tools=tools,
-                require_web_search=True,
-            )
-        except Exception as exc:
-            error_message = self._format_tool_error("Deepseek联网搜索测试失败", exc)
-            await self.ctx.send.text(error_message, stream_id)
-            return False, error_message, True
-        await self.ctx.send.text(f"Deepseek联网搜索测试完成。\n{result}", stream_id)
-        return True, "Deepseek联网搜索测试完成", True
-
 
 def create_plugin() -> DeepSeekWebSearcherPlugin:
     """创建插件实例。"""
