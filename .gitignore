@@ -1,0 +1,23 @@
+.venv/
+.uv-cache/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+config.toml
+.env
+.env.*
+!.env.example
+*.log
+dist/
+upstream/
+reference-market/
+reference-host/
+
+# Local development and publishing helpers
+/tests/
+/test/
+/scripts/
+/PUBLISHING.md
+/.github/
+/uv.lock
+/pytest-cache-files-*/
