@@ -10,10 +10,10 @@
   },
   "license": "MIT",
   "urls": {
-    "repository": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher",
-    "homepage": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher",
-    "documentation": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher/blob/main/README.md",
-    "issues": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher/issues"
+    "repository": "https://github.com/Qhzy1411/Maibot-Deepseek-Web-Searcher",
+    "homepage": "https://github.com/Qhzy1411/Maibot-Deepseek-Web-Searcher",
+    "documentation": "https://github.com/Qhzy1411/Maibot-Deepseek-Web-Searcher/blob/main/README.md",
+    "issues": "https://github.com/Qhzy1411/Maibot-Deepseek-Web-Searcher/issues"
   },
   "host_application": {
     "min_version": "1.0.0",
@@ -24,10 +24,23 @@
     "max_version": "2.99.99"
   },
   "dependencies": [
-    {"type": "python_package", "name": "anthropic", "version_spec": ">=0.104.0,<1.0.0"},
-    {"type": "python_package", "name": "maibot-plugin-sdk", "version_spec": ">=2.5.2,<3.0.0"}
+    {
+      "type": "python_package",
+      "name": "anthropic",
+      "version_spec": ">=0.104.0,<1.0.0"
+    },
+    {
+      "type": "python_package",
+      "name": "maibot-plugin-sdk",
+      "version_spec": ">=2.5.2,<3.0.0"
+    }
   ],
   "plugin_type": "integration",
   "capabilities": [],
-  "i18n": {"default_locale": "zh-CN", "supported_locales": ["zh-CN"]}
+  "i18n": {
+    "default_locale": "zh-CN",
+    "supported_locales": [
+      "zh-CN"
+    ]
+  }
 }

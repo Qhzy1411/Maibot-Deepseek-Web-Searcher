@@ -4,10 +4,10 @@
 
 向 MaiBot 注册两个工具：
 
-| 工具 | 功能 |
-| --- | --- |
+| 工具                   | 功能                                                                     |
+| ---------------------- | ------------------------------------------------------------------------ |
 | `search_and_summarize` | 联网搜索并整理检索结果，支持搜索档位和时间、地区、语言、版本、来源偏好。 |
-| `fetch_page` | 检索指定公开 HTTP/HTTPS URL，核对来源后返回页面内容摘要。 |
+| `fetch_page`           | 检索指定公开 HTTP/HTTPS URL，核对来源后返回页面内容摘要。                |
 
 **搜索通过 DeepSeek API 执行，需要 API 密钥并会产生费用。** DeepSeek 负责搜索及检索资料摘要，最终聊天回复仍由 MaiBot 主模型组织。
 
@@ -32,21 +32,21 @@ uv pip install --python <MaiBot使用的Python路径> "anthropic>=0.104.0,<1.0.0
 
 推荐在 MaiBot 进程环境中设置 `DEEPSEEK_API_KEY`，保持 `auth.api_key` 留空。也可以在 WebUI 填写密钥，配置密钥优先于环境变量。不要提交实际 `config.toml`。
 
-| 分组 | 设置 | 默认与含义 |
-| --- | --- | --- |
-| plugin | enabled | `true`；关闭后全部入口停止请求。 |
-| plugin | max_concurrent_requests | `4`；其余请求排队，总等待队列有上限。 |
-| plugin | coalesce_requests | `true`；仅合并同一会话中完全相同的在途请求，不缓存答案。 |
-| auth | api_key / api_key_env | 配置密钥或环境变量，默认 `DEEPSEEK_API_KEY`。 |
-| model | model_choice | 默认 `deepseek-flash`，可选择 `deepseek-v4-pro`。 |
-| model | max_tokens | `4096`；检索摘要输出上限。 |
-| model | request_timeout_seconds | `120`；包含排队；SDK 自动重试关闭。 |
-| search | enabled | `true`；关闭后搜索和网页查看均不请求 API。 |
-| search | web_search_tool | 默认 `web_search_20260209`，可选择 `web_search_20250305`。 |
-| search | max_search_uses | `5`；每请求最多搜索次数，范围 1–20。 |
-| search | default_depth | `standard`；quick 最多 2 次、standard 最多 3 次、deep 使用管理员上限。 |
-| debug | log_search_sources | `true`；来源写入日志，可能含 URL 查询参数。 |
-| debug | log_raw_summary | `false`；开启后记录耗时、token 和停止原因，不记录完整提示词或回答。 |
+| 分组   | 设置                    | 默认与含义                                                             |
+| ------ | ----------------------- | ---------------------------------------------------------------------- |
+| plugin | enabled                 | `true`；关闭后全部入口停止请求。                                       |
+| plugin | max_concurrent_requests | `4`；其余请求排队，总等待队列有上限。                                  |
+| plugin | coalesce_requests       | `true`；仅合并同一会话中完全相同的在途请求，不缓存答案。               |
+| auth   | api_key / api_key_env   | 配置密钥或环境变量，默认 `DEEPSEEK_API_KEY`。                          |
+| model  | model_choice            | 默认 `deepseek-flash`，可选择 `deepseek-v4-pro`。                      |
+| model  | max_tokens              | `4096`；检索摘要输出上限。                                             |
+| model  | request_timeout_seconds | `120`；包含排队；SDK 自动重试关闭。                                    |
+| search | enabled                 | `true`；关闭后搜索和网页查看均不请求 API。                             |
+| search | web_search_tool         | 默认 `web_search_20260209`，可选择 `web_search_20250305`。             |
+| search | max_search_uses         | `5`；每请求最多搜索次数，范围 1–20。                                   |
+| search | default_depth           | `standard`；quick 最多 2 次、standard 最多 3 次、deep 使用管理员上限。 |
+| debug  | log_search_sources      | `true`；来源写入日志，可能含 URL 查询参数。                            |
+| debug  | log_raw_summary         | `false`；开启后记录耗时、token 和停止原因，不记录完整提示词或回答。    |
 
 搜索范围是传给后端的偏好，不是硬过滤。所有档位固定关闭思考。每次搜索在出队后附加服务器本地时间与 UTC 偏移，部署时请确认服务器时间正确。
 
@@ -77,7 +77,7 @@ uv pip install --python <MaiBot使用的Python路径> "anthropic>=0.104.0,<1.0.0
 
 - 中文名：Deepseek联网搜索。
 - 插件 ID：`Qhzy1411.deepseek-web-searcher`。
-- 仓库：`https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher`。
+- 仓库：`https://github.com/Qhzy1411/Maibot-Deepseek-Web-Searcher`。
 
 ## 许可
 
