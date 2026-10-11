@@ -1,6 +1,6 @@
 [project]
 name = "deepseek-web-searcher"
-version = "1.0.0"
+version = "1.0.1"
 description = "MaiBot plugin for DeepSeek web search and URL retrieval only"
 requires-python = ">=3.11"
 license = "MIT"

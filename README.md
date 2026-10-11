@@ -84,12 +84,12 @@ uv pip install --python <MaiBot使用的Python路径> "anthropic>=0.104.0,<1.0.0
 
 - 中文名：Deepseek联网搜索。
 - 插件 ID：`Qhzy1411.deepseek-web-searcher`。
-- 仓库：`https://github.com/Qhzy1411/Maibot_Deepseek-Web-Searcher`。
+- 仓库：`https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher`。
 
 ## 许可
 
 MIT，许可声明见 [LICENSE](LICENSE)。
 
-## 参考
+## 来源与授权
 
-开发参考了 [DeepSeek Anthropic Provider](https://github.com/LowValueTarget777/deepseek-anthropic-provider)。
+本项目由 Qhzy1411 维护和发布，部分实现基于 [DeepSeek Anthropic Provider](https://github.com/LowValueTarget777/deepseek-anthropic-provider) 开发。该项目由 LowValueTarget 开发，并以 MIT 许可证授权使用、修改和分发。本项目同样采用 MIT 许可证，LICENSE 中保留了 LowValueTarget 的版权声明，并补充了 Qhzy1411 对本项目修改部分的版权声明。

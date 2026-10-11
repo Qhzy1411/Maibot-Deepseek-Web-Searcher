@@ -1,19 +1,19 @@
 {
   "manifest_version": 2,
   "id": "Qhzy1411.deepseek-web-searcher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Deepseek联网搜索",
   "description": "提供 DeepSeek 联网搜索与指定网页检索能力",
   "author": {
     "name": "Qhzy1411",
-    "url": "https://github.com/Qhzy1411/Maibot_Deepseek-Web-Searcher"
+    "url": "https://github.com/Qhzy1411"
   },
   "license": "MIT",
   "urls": {
-    "repository": "https://github.com/Qhzy1411/Maibot_Deepseek-Web-Searcher",
-    "homepage": "https://github.com/Qhzy1411/Maibot_Deepseek-Web-Searcher",
-    "documentation": "https://github.com/Qhzy1411/Maibot_Deepseek-Web-Searcher/blob/main/README.md",
-    "issues": "https://github.com/Qhzy1411/Maibot_Deepseek-Web-Searcher/issues"
+    "repository": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher",
+    "homepage": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher",
+    "documentation": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher/blob/main/README.md",
+    "issues": "https://github.com/Qhzy1411/Maibot_Deepseek_Web_Searcher/issues"
   },
   "host_application": {
     "min_version": "1.0.0",

@@ -21,3 +21,5 @@ reference-host/
 /.github/
 /uv.lock
 /pytest-cache-files-*/
+/.vscode/
+/pyrightconfig.json

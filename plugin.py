@@ -2,7 +2,7 @@
 
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, cast
 from urllib.parse import urlsplit
 import asyncio
 import copy
@@ -14,8 +14,7 @@ import time
 from maibot_sdk import Command, Field, MaiBotPlugin, PluginConfigBase, Tool
 from maibot_sdk.types import ToolParameterInfo, ToolParamType
 
-
-PLUGIN_VERSION = "1.0.0"
+PLUGIN_VERSION = "1.0.1"
 DEFAULT_BASE_URL = "https://api.deepseek.com/anthropic"
 DEEPSEEK_REQUEST_TIMEOUT_SECONDS = 120
 MAX_PENDING_REQUESTS = 64
@@ -88,7 +87,9 @@ REQUIRED_SOURCE_URL_NOT_FOUND_MESSAGE = (
 class DeepSeekRequestError(RuntimeError):
     """可以安全展示给聊天用户的 DeepSeek 请求错误。"""
 
-    def __init__(self, message: str, *, code: str = "request_failed", partial_text: str = "") -> None:
+    def __init__(
+        self, message: str, *, code: str = "request_failed", partial_text: str = ""
+    ) -> None:
         super().__init__(message)
         self.code = code
         self.partial_text = partial_text
@@ -121,6 +122,7 @@ class DeepSeekRequestError(RuntimeError):
 
 # ========== 配置 ==========
 
+
 class PluginSectionConfig(PluginConfigBase):
     """插件开关。"""
 
@@ -148,7 +150,9 @@ class PluginSectionConfig(PluginConfigBase):
         },
     )
     max_concurrent_requests: int = Field(
-        default=4, ge=1, le=32,
+        default=4,
+        ge=1,
+        le=32,
         description="插件同时向 DeepSeek 发出的请求数量，其余请求在总时限内排队。",
         json_schema_extra={"label": "最大并发请求数", "x-widget": "input"},
     )
@@ -193,7 +197,7 @@ class ModelConfig(PluginConfigBase):
     __ui_icon__ = "brain-circuit"
     __ui_order__ = 2
 
-    model_choice: Literal[MODEL_PRO, MODEL_FLASH] = Field(
+    model_choice: Literal["deepseek-v4-pro", "deepseek-flash"] = Field(
         default=MODEL_FLASH,
         description="选择调用 DeepSeek Anthropic 接口时使用的模型。",
         json_schema_extra={
@@ -214,7 +218,9 @@ class ModelConfig(PluginConfigBase):
         },
     )
     request_timeout_seconds: float = Field(
-        default=DEEPSEEK_REQUEST_TIMEOUT_SECONDS, ge=1, le=600,
+        default=DEEPSEEK_REQUEST_TIMEOUT_SECONDS,
+        ge=1,
+        le=600,
         description="一次调用的总时限，包含排队和 API 等待；不自动重试付费请求。",
         json_schema_extra={"label": "请求总时限（秒）", "x-widget": "input"},
     )
@@ -236,7 +242,7 @@ class SearchConfig(PluginConfigBase):
             "x-widget": "switch",
         },
     )
-    web_search_tool: Literal[WEB_SEARCH_TOOL_20260209, WEB_SEARCH_TOOL_20250305] = Field(
+    web_search_tool: Literal["web_search_20260209", "web_search_20250305"] = Field(
         default=WEB_SEARCH_TOOL_20260209,
         description="请求使用的 Anthropic 网页搜索工具版本，需通过真实搜索测试确认兼容性。",
         json_schema_extra={
@@ -247,7 +253,8 @@ class SearchConfig(PluginConfigBase):
     )
     max_search_uses: int = Field(
         default=5,
-        ge=1, le=20,
+        ge=1,
+        le=20,
         description="每轮搜索的总次数上限；次数更多不保证效果更好，可能增加耗时和费用。",
         json_schema_extra={
             "label": "每轮最多搜索次数",
@@ -259,7 +266,8 @@ class SearchConfig(PluginConfigBase):
         default="standard",
         description="搜索和网页检索的默认档位：快速最多 2 次、标准最多 3 次、深入使用配置上限。",
         json_schema_extra={
-            "label": "默认搜索档位", "x-widget": "select",
+            "label": "默认搜索档位",
+            "x-widget": "select",
             "hint": "档位仅影响搜索次数上限，所有请求均关闭思考模式。",
         },
     )
@@ -314,6 +322,7 @@ class DeepSeekWebSearcherConfig(PluginConfigBase):
 
 # ========== 辅助函数 ==========
 
+
 def _add_choice_labels(schema: dict[str, Any]) -> dict[str, Any]:
     """在生成的 JSON Schema 中注入中文 choice_labels。"""
 
@@ -342,7 +351,9 @@ def _add_tab_layout(schema: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(sections, dict):
         return schema
 
-    ordered_sections = sorted(sections.items(), key=lambda item: (item[1] or {}).get("order", 0))
+    ordered_sections = sorted(
+        sections.items(), key=lambda item: (item[1] or {}).get("order", 0)
+    )
     schema["layout"] = {
         "type": "tabs",
         "tabs": [
@@ -378,13 +389,21 @@ def _is_future_config_version(config_data: Mapping[str, Any] | None) -> bool:
         return False
     config_version = _version_parts(plugin_section.get("config_version", ""))
     plugin_version = _version_parts(PLUGIN_VERSION)
-    return config_version is not None and plugin_version is not None and config_version > plugin_version
+    return (
+        config_version is not None
+        and plugin_version is not None
+        and config_version > plugin_version
+    )
 
 
-def _normalize_legacy_config(config_data: Mapping[str, Any] | None) -> tuple[dict[str, Any], bool]:
+def _normalize_legacy_config(
+    config_data: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], bool]:
     """迁移旧分组、旧字段名和旧中文选项值。"""
 
-    normalized = copy.deepcopy(dict(config_data)) if isinstance(config_data, Mapping) else {}
+    normalized: dict[str, Any] = (
+        copy.deepcopy(dict(config_data)) if isinstance(config_data, Mapping) else {}
+    )
     changed = False
 
     plugin_section = normalized.setdefault("plugin", {})
@@ -392,7 +411,9 @@ def _normalize_legacy_config(config_data: Mapping[str, Any] | None) -> tuple[dic
         plugin_section = {}
         normalized["plugin"] = plugin_section
         changed = True
-    if plugin_section.get("config_version") != PLUGIN_VERSION and not _is_future_config_version(normalized):
+    if plugin_section.get(
+        "config_version"
+    ) != PLUGIN_VERSION and not _is_future_config_version(normalized):
         plugin_section["config_version"] = PLUGIN_VERSION
         changed = True
 
@@ -453,7 +474,9 @@ def _resolve_model(config: DeepSeekWebSearcherConfig) -> str:
     return MODEL_ID_BY_CHOICE.get(config.model.model_choice, MODEL_FLASH)
 
 
-def _build_web_search_tools(config: DeepSeekWebSearcherConfig, max_uses: int | None = None) -> list[dict[str, Any]]:
+def _build_web_search_tools(
+    config: DeepSeekWebSearcherConfig, max_uses: int | None = None
+) -> list[dict[str, Any]]:
     """构造 DeepSeek Anthropic server web search 工具参数。"""
 
     if not config.search.enabled:
@@ -471,11 +494,17 @@ def _build_web_search_tools(config: DeepSeekWebSearcherConfig, max_uses: int | N
     ]
 
 
-def _search_budget(config: DeepSeekWebSearcherConfig, depth: str) -> list[dict[str, Any]]:
+def _search_budget(
+    config: DeepSeekWebSearcherConfig, depth: str
+) -> list[dict[str, Any]]:
     selected = depth or config.search.default_depth
     if not isinstance(selected, str) or selected not in SEARCH_DEPTH_LABELS:
-        raise DeepSeekRequestError("搜索档位只能是 quick、standard 或 deep。", code="invalid_input")
-    max_uses = {"quick": 2, "standard": 3, "deep": config.search.max_search_uses}[selected]
+        raise DeepSeekRequestError(
+            "搜索档位只能是 quick、standard 或 deep。", code="invalid_input"
+        )
+    max_uses = {"quick": 2, "standard": 3, "deep": config.search.max_search_uses}[
+        selected
+    ]
     return _build_web_search_tools(config, max_uses=max_uses)
 
 
@@ -483,16 +512,29 @@ def _search_scope_prompt(scope: dict[str, str] | None) -> str:
     if scope is None:
         return ""
     fields = {"time_range", "region", "language", "version", "sources"}
-    if not isinstance(scope, dict) or scope.keys() - fields or any(
-        not isinstance(value, str) or len(value) > 500 for value in scope.values()
+    if (
+        not isinstance(scope, dict)
+        or scope.keys() - fields
+        or any(
+            not isinstance(value, str) or len(value) > 500 for value in scope.values()
+        )
     ):
-        raise DeepSeekRequestError("搜索范围只接受时间、地区、语言、版本和来源偏好，每项不超过 500 字。", code="invalid_input")
-    return "\n【搜索范围偏好】\n" + json.dumps(scope, ensure_ascii=False, sort_keys=True)
+        raise DeepSeekRequestError(
+            "搜索范围只接受时间、地区、语言、版本和来源偏好，每项不超过 500 字。",
+            code="invalid_input",
+        )
+    return "\n【搜索范围偏好】\n" + json.dumps(
+        scope, ensure_ascii=False, sort_keys=True
+    )
 
 
 def _request_scope(kwargs: Mapping[str, Any], tool_name: str) -> str:
     stream_id = kwargs.get("stream_id")
-    return f"{tool_name}:{stream_id}" if isinstance(stream_id, str) and stream_id.strip() else ""
+    return (
+        f"{tool_name}:{stream_id}"
+        if isinstance(stream_id, str) and stream_id.strip()
+        else ""
+    )
 
 
 def _has_web_search_tool(tools: list[dict[str, Any]] | None) -> bool:
@@ -513,7 +555,9 @@ def _build_search_time_context() -> str:
     local_time = datetime.now().astimezone()
     timezone_name = local_time.tzname() or "本地时区"
     raw_offset = local_time.strftime("%z")
-    utc_offset = f"{raw_offset[:3]}:{raw_offset[3:]}" if len(raw_offset) == 5 else raw_offset
+    utc_offset = (
+        f"{raw_offset[:3]}:{raw_offset[3:]}" if len(raw_offset) == 5 else raw_offset
+    )
     formatted_time = local_time.strftime("%Y年%m月%d日 %H:%M:%S")
     return (
         f"【当前时间】服务器本地时间是 {formatted_time}（{timezone_name}，UTC{utc_offset}）。"
@@ -584,7 +628,9 @@ def _extract_citations_from_block(block: dict[str, Any]) -> list[dict[str, str]]
     for raw_citation in _as_block_list(block.get("citations")):
         citation = _block_to_dict(raw_citation)
         url = str(citation.get("url", "") or "").strip()
-        title = str(citation.get("title", "") or citation.get("cited_text", "") or "").strip()
+        title = str(
+            citation.get("title", "") or citation.get("cited_text", "") or ""
+        ).strip()
         if url:
             citations.append({"title": title, "url": url})
 
@@ -637,7 +683,10 @@ def _is_valid_web_url(url: str) -> bool:
     """只接受带主机名的 HTTP/HTTPS URL。"""
 
     normalized_url = url.strip()
-    if any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in normalized_url):
+    if any(
+        character.isspace() or ord(character) < 32 or ord(character) == 127
+        for character in normalized_url
+    ):
         return False
     if "\\" in normalized_url:
         return False
@@ -648,12 +697,16 @@ def _is_valid_web_url(url: str) -> bool:
     except ValueError:
         return False
     return (
-        parsed.scheme.lower() in {"http", "https"} and bool(hostname)
-        and parsed.username is None and parsed.password is None
+        parsed.scheme.lower() in {"http", "https"}
+        and bool(hostname)
+        and parsed.username is None
+        and parsed.password is None
     )
 
 
-def _normalized_web_url_parts(url: str) -> tuple[str, str, int | None, str, str, str] | None:
+def _normalized_web_url_parts(
+    url: str,
+) -> tuple[str, str, int | None, str, str, str] | None:
     """只规范化不会改变页面身份的部分，不推测重定向或删除查询参数。"""
 
     if not _is_valid_web_url(url):
@@ -667,7 +720,14 @@ def _normalized_web_url_parts(url: str) -> tuple[str, str, int | None, str, str,
     scheme = parsed.scheme.lower()
     if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
         port = None
-    return scheme, str(parsed.hostname or "").lower(), port, parsed.path or "/", parsed.query, parsed.fragment
+    return (
+        scheme,
+        str(parsed.hostname or "").lower(),
+        port,
+        parsed.path or "/",
+        parsed.query,
+        parsed.fragment,
+    )
 
 
 def _is_related_web_url(source_url: str, target_url: str) -> bool:
@@ -689,10 +749,15 @@ class _PendingRequest:
 
 # ========== 插件主体 ==========
 
+
 class DeepSeekWebSearcherPlugin(MaiBotPlugin):
     """仅注册搜索、网页查看与搜索诊断命令。"""
 
     config_model = DeepSeekWebSearcherConfig
+
+    @property
+    def config(self) -> DeepSeekWebSearcherConfig:
+        return cast(DeepSeekWebSearcherConfig, super().config)
 
     def __init__(self) -> None:
         super().__init__()
@@ -723,8 +788,10 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         )
         return _add_tab_layout(_add_choice_labels(schema))
 
-    def normalize_plugin_config(self, config_data: Mapping[str, Any] | None) -> tuple[dict[str, Any], bool]:
-        if _is_future_config_version(config_data):
+    def normalize_plugin_config(
+        self, config_data: Mapping[str, Any] | None
+    ) -> tuple[dict[str, Any], bool]:
+        if isinstance(config_data, Mapping) and _is_future_config_version(config_data):
             return copy.deepcopy(dict(config_data)), False
 
         normalized_input, legacy_changed = _normalize_legacy_config(config_data)
@@ -753,10 +820,14 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
                 async with asyncio.timeout(5):
                     await client.close()
             except Exception as exc:
-                self.ctx.logger.warning("关闭 DeepSeek 连接失败：%s", type(exc).__name__)
+                self.ctx.logger.warning(
+                    "关闭 DeepSeek 连接失败：%s", type(exc).__name__
+                )
         self.ctx.logger.info("Deepseek联网搜索已卸载")
 
-    async def on_config_update(self, scope: str, config_data: dict[str, Any], version: str) -> None:
+    async def on_config_update(
+        self, scope: str, config_data: dict[str, Any], version: str
+    ) -> None:
         """配置热重载时执行。"""
         del config_data, version
         if scope == "self":
@@ -780,11 +851,19 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
     async def _request_slot(self):
         async with self._capacity:
             await self._capacity.wait_for(
-                lambda: self._closing or not self.config.plugin.enabled or not self.config.search.enabled
+                lambda: self._closing
+                or not self.config.plugin.enabled
+                or not self.config.search.enabled
                 or self._active_requests < self.config.plugin.max_concurrent_requests
             )
-            if self._closing or not self.config.plugin.enabled or not self.config.search.enabled:
-                raise DeepSeekRequestError("插件已关闭，取消等待中的请求。", code="disabled")
+            if (
+                self._closing
+                or not self.config.plugin.enabled
+                or not self.config.search.enabled
+            ):
+                raise DeepSeekRequestError(
+                    "插件已关闭，取消等待中的请求。", code="disabled"
+                )
             self._active_requests += 1
         try:
             yield
@@ -799,9 +878,14 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
             try:
                 from anthropic import AsyncAnthropic
             except ImportError as exc:
-                raise DeepSeekRequestError("缺少 anthropic 依赖，请先安装插件依赖") from exc
+                raise DeepSeekRequestError(
+                    "缺少 anthropic 依赖，请先安装插件依赖"
+                ) from exc
             self._client = AsyncAnthropic(
-                api_key=api_key, base_url=DEFAULT_BASE_URL, timeout=timeout, max_retries=0,
+                api_key=api_key,
+                base_url=DEFAULT_BASE_URL,
+                timeout=timeout,
+                max_retries=0,
             )
         elif self._client_identity != identity:
             # SDK 副本共享连接池，但保留各自密钥，避免热更新改变正在执行的请求。
@@ -837,11 +921,15 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         if not self.config.search.enabled:
             raise DeepSeekRequestError("联网搜索已在插件配置中关闭", code="disabled")
         if not require_web_search or not _has_web_search_tool(tools):
-            raise DeepSeekRequestError("本插件只接受必须联网的检索请求。", code="search_required")
+            raise DeepSeekRequestError(
+                "本插件只接受必须联网的检索请求。", code="search_required"
+            )
 
         api_key = _resolve_api_key(self.config)
         if not api_key:
-            raise DeepSeekRequestError("缺少 DeepSeek API 密钥，请配置插件密钥或 DEEPSEEK_API_KEY 环境变量")
+            raise DeepSeekRequestError(
+                "缺少 DeepSeek API 密钥，请配置插件密钥或 DEEPSEEK_API_KEY 环境变量"
+            )
 
         model = _resolve_model(self.config)
         timeout = self.config.model.request_timeout_seconds
@@ -863,22 +951,43 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         # 只合并已知会话内、有效参数完全一致的在途请求；不保留完成的答案。
         key = ""
         if request_scope and self.config.plugin.coalesce_requests:
-            identity = [request_scope, api_key, timeout, request_body, require_web_search, required_source_url]
-            key = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+            identity = [
+                request_scope,
+                api_key,
+                timeout,
+                request_body,
+                require_web_search,
+                required_source_url,
+            ]
+            key = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()
+            ).hexdigest()
         entry = self._inflight.get(key) if key else None
         if entry is None or entry.task.done() or entry.task.cancelling():
             if len(self._requests) >= MAX_PENDING_REQUESTS:
-                raise DeepSeekRequestError("插件等待队列已满，请稍后再试。", code="busy")
-            task = asyncio.create_task(self._execute_request(
-                request_body, api_key, timeout, require_web_search, required_source_url,
-            ))
+                raise DeepSeekRequestError(
+                    "插件等待队列已满，请稍后再试。", code="busy"
+                )
+            task = asyncio.create_task(
+                self._execute_request(
+                    request_body,
+                    api_key,
+                    timeout,
+                    require_web_search,
+                    required_source_url,
+                )
+            )
             entry = _PendingRequest(task)
             self._requests.add(task)
             if key:
                 self._inflight[key] = entry
-            task.add_done_callback(lambda completed: self._forget_request(key, completed))
+            task.add_done_callback(
+                lambda completed: self._forget_request(key, completed)
+            )
         elif entry.waiters >= MAX_PENDING_REQUESTS:
-            raise DeepSeekRequestError("相同请求的等待人数过多，请稍后再试。", code="busy")
+            raise DeepSeekRequestError(
+                "相同请求的等待人数过多，请稍后再试。", code="busy"
+            )
         else:
             self.ctx.logger.debug("已合并同一会话的重复 DeepSeek 请求")
         entry.waiters += 1
@@ -886,7 +995,9 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
             async with asyncio.timeout(timeout):
                 return await asyncio.shield(entry.task)
         except TimeoutError as exc:
-            raise DeepSeekRequestError("DeepSeek 调用超过总时限（包含排队），请稍后再试。", code="timeout") from exc
+            raise DeepSeekRequestError(
+                "DeepSeek 调用超过总时限（包含排队），请稍后再试。", code="timeout"
+            ) from exc
         finally:
             entry.waiters -= 1
             if entry.waiters == 0 and not entry.task.done():
@@ -896,36 +1007,54 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
                 await asyncio.gather(entry.task, return_exceptions=True)
 
     async def _execute_request(
-        self, request_body: dict[str, Any], api_key: str, timeout: float,
-        require_web_search: bool, required_source_url: str | None,
+        self,
+        request_body: dict[str, Any],
+        api_key: str,
+        timeout: float,
+        require_web_search: bool,
+        required_source_url: str | None,
     ) -> str:
         started = time.monotonic()
         try:
             async with asyncio.timeout(timeout):
                 async with self._request_slot():
                     if not self.config.search.enabled:
-                        raise DeepSeekRequestError("联网搜索已关闭，取消等待中的请求。", code="disabled")
+                        raise DeepSeekRequestError(
+                            "联网搜索已关闭，取消等待中的请求。", code="disabled"
+                        )
                     if _has_web_search_tool(request_body.get("tools")):
                         # 动态时间放在用户输入末尾，并在出队后生成，保留固定提示前缀。
-                        request_body["messages"][0]["content"] += "\n\n" + _build_search_time_context()
+                        request_body["messages"][0]["content"] += (
+                            "\n\n" + _build_search_time_context()
+                        )
                     client = self._get_client(api_key, timeout)
                     response = await client.messages.create(**request_body)
-                    return self._parse_response(response, require_web_search, required_source_url)
+                    return self._parse_response(
+                        response, require_web_search, required_source_url
+                    )
         except DeepSeekRequestError:
             raise
         except TimeoutError as exc:
-            raise DeepSeekRequestError("DeepSeek 调用超过总时限（包含排队），请稍后再试。", code="timeout") from exc
+            raise DeepSeekRequestError(
+                "DeepSeek 调用超过总时限（包含排队），请稍后再试。", code="timeout"
+            ) from exc
         except Exception as exc:
             self.ctx.logger.error(
                 "Deepseek联网搜索请求失败：type=%s status=%s",
-                type(exc).__name__, getattr(exc, "status_code", None),
+                type(exc).__name__,
+                getattr(exc, "status_code", None),
             )
             raise DeepSeekRequestError.from_exception(exc) from exc
         finally:
             if self.config.debug.log_raw_summary:
-                self.ctx.logger.info("Deepseek联网搜索请求耗时（含排队）：%.3f 秒", time.monotonic() - started)
+                self.ctx.logger.info(
+                    "Deepseek联网搜索请求耗时（含排队）：%.3f 秒",
+                    time.monotonic() - started,
+                )
 
-    def _parse_response(self, response: Any, require_web_search: bool, required_source_url: str | None) -> str:
+    def _parse_response(
+        self, response: Any, require_web_search: bool, required_source_url: str | None
+    ) -> str:
         # 提取最终文本、搜索来源和 server tool 错误。
         text_parts: list[str] = []
         citations: list[dict[str, str]] = []
@@ -933,7 +1062,9 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         search_result_urls: list[str] = []
         raw_content = getattr(response, "content", [])
 
-        if isinstance(raw_content, (list, tuple)) and not isinstance(raw_content, (str, bytes)):
+        if isinstance(raw_content, (list, tuple)) and not isinstance(
+            raw_content, (str, bytes)
+        ):
             for raw_block in raw_content:
                 block = _block_to_dict(raw_block)
                 block_type = str(block.get("type", "") or "").strip()
@@ -955,46 +1086,77 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         if search_errors:
             self.ctx.logger.warning(
                 "Deepseek联网搜索工具错误: %s",
-                [{"code": code, "message": _search_error_message(code)} for code in search_errors],
+                [
+                    {"code": code, "message": _search_error_message(code)}
+                    for code in search_errors
+                ],
             )
         if self.config.debug.log_raw_summary:
             self.ctx.logger.info(
                 "Deepseek联网搜索响应摘要: model=%s stop=%s tokens_in=%s tokens_out=%s request_id=%s sources=%s",
                 getattr(response, "model", ""),
                 getattr(response, "stop_reason", ""),
-                getattr(response.usage, "input_tokens", 0) if hasattr(response, "usage") else 0,
-                getattr(response.usage, "output_tokens", 0) if hasattr(response, "usage") else 0,
+                (
+                    getattr(response.usage, "input_tokens", 0)
+                    if hasattr(response, "usage")
+                    else 0
+                ),
+                (
+                    getattr(response.usage, "output_tokens", 0)
+                    if hasattr(response, "usage")
+                    else 0
+                ),
                 getattr(response, "_request_id", ""),
                 len(search_result_urls),
             )
 
         final_text = "\n\n".join(text_parts).strip()
         source_matches = not required_source_url or any(
-            _is_related_web_url(result_url, required_source_url) for result_url in search_result_urls
+            _is_related_web_url(result_url, required_source_url)
+            for result_url in search_result_urls
         )
         stop_reason = str(getattr(response, "stop_reason", "") or "")
         if stop_reason == "max_tokens":
-            verified = source_matches and not search_errors and (not require_web_search or bool(search_result_urls))
+            verified = (
+                source_matches
+                and not search_errors
+                and (not require_web_search or bool(search_result_urls))
+            )
             raise DeepSeekRequestError(
                 "DeepSeek 输出达到最大长度，回答未完成；请调高“最大输出长度”或缩小检索范围。",
-                code="truncated", partial_text=final_text if verified else "",
+                code="truncated",
+                partial_text=final_text if verified else "",
             )
         if stop_reason not in {"end_turn", "stop_sequence"}:
-            raise DeepSeekRequestError("DeepSeek 未正常完成回答，请稍后重试。", code="incomplete")
+            raise DeepSeekRequestError(
+                "DeepSeek 未正常完成回答，请稍后重试。", code="incomplete"
+            )
         if require_web_search and search_errors:
-            raise DeepSeekRequestError(f"联网搜索失败：{_search_error_message(search_errors[0])}", code="search_failed")
+            raise DeepSeekRequestError(
+                f"联网搜索失败：{_search_error_message(search_errors[0])}",
+                code="search_failed",
+            )
         if require_web_search and not search_result_urls:
             self.ctx.logger.warning("Deepseek联网搜索未返回可用网页搜索结果")
-            raise DeepSeekRequestError(REQUIRED_WEB_SEARCH_NOT_USED_MESSAGE, code="search_not_verified")
+            raise DeepSeekRequestError(
+                REQUIRED_WEB_SEARCH_NOT_USED_MESSAGE, code="search_not_verified"
+            )
         if not source_matches:
             self.ctx.logger.warning("Deepseek联网搜索结果未匹配目标网页")
-            raise DeepSeekRequestError(REQUIRED_SOURCE_URL_NOT_FOUND_MESSAGE, code="source_mismatch")
+            raise DeepSeekRequestError(
+                REQUIRED_SOURCE_URL_NOT_FOUND_MESSAGE, code="source_mismatch"
+            )
 
         if final_text:
             return final_text
         if search_errors:
-            raise DeepSeekRequestError(f"联网搜索失败：{_search_error_message(search_errors[0])}", code="search_failed")
-        raise DeepSeekRequestError("DeepSeek 未返回文本内容，请稍后重试。", code="empty_response")
+            raise DeepSeekRequestError(
+                f"联网搜索失败：{_search_error_message(search_errors[0])}",
+                code="search_failed",
+            )
+        raise DeepSeekRequestError(
+            "DeepSeek 未返回文本内容，请稍后重试。", code="empty_response"
+        )
 
     # ================================================================
     # Tool: search_and_summarize
@@ -1004,38 +1166,68 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         "search_and_summarize",
         description="使用 DeepSeek 联网搜索网页并总结结果。适合查最新消息、查资料、核实事实等需要联网的场景。",
         parameters=[
-            ToolParameterInfo(name="query", param_type=ToolParamType.STRING, description="搜索查询词", required=True),
-            ToolParameterInfo(name="explanation", param_type=ToolParamType.STRING, description="为什么需要搜索", required=False),
             ToolParameterInfo(
-                name="depth", param_type=ToolParamType.STRING, required=False,
+                name="query",
+                param_type=ToolParamType.STRING,
+                description="搜索查询词",
+                required=True,
+            ),
+            ToolParameterInfo(
+                name="explanation",
+                param_type=ToolParamType.STRING,
+                description="为什么需要搜索",
+                required=False,
+            ),
+            ToolParameterInfo(
+                name="depth",
+                param_type=ToolParamType.STRING,
+                required=False,
                 description="搜索档位：quick 简单事实、standard 常规查询、deep 多方面查证；不突破管理员预算。",
                 enum_values=list(SEARCH_DEPTH_LABELS),
             ),
             ToolParameterInfo(
-                name="search_scope", param_type=ToolParamType.OBJECT, required=False,
+                name="search_scope",
+                param_type=ToolParamType.OBJECT,
+                required=False,
                 description="可选搜索范围偏好，以提示词传递，不是后端强制过滤。",
                 properties={
-                    "time_range": {"type": "string", "description": "时间范围，如最近一周"},
+                    "time_range": {
+                        "type": "string",
+                        "description": "时间范围，如最近一周",
+                    },
                     "region": {"type": "string", "description": "地区"},
                     "language": {"type": "string", "description": "资料语言"},
                     "version": {"type": "string", "description": "产品或文档版本"},
-                    "sources": {"type": "string", "description": "来源偏好，如官方文档"},
+                    "sources": {
+                        "type": "string",
+                        "description": "来源偏好，如官方文档",
+                    },
                 },
                 additional_properties=False,
             ),
         ],
     )
     async def handle_search_and_summarize(
-        self, query: str = "", explanation: str = "", depth: str = "",
-        search_scope: dict[str, str] | None = None, **kwargs: Any,
+        self,
+        query: str = "",
+        explanation: str = "",
+        depth: str = "",
+        search_scope: dict[str, str] | None = None,
+        **kwargs: Any,
     ):
         """联网搜索并总结。"""
         if not isinstance(query, str) or not query.strip():
             return {"name": "search_and_summarize", "content": "请提供搜索查询词。"}
         if not isinstance(explanation, str):
-            return {"name": "search_and_summarize", "content": "搜索失败：调用原因必须是文本。"}
+            return {
+                "name": "search_and_summarize",
+                "content": "搜索失败：调用原因必须是文本。",
+            }
         if not self.config.search.enabled:
-            return {"name": "search_and_summarize", "content": "联网搜索已在插件配置中关闭。"}
+            return {
+                "name": "search_and_summarize",
+                "content": "联网搜索已在插件配置中关闭。",
+            }
 
         reason = f"（调用原因：{explanation}）" if explanation.strip() else ""
         system = "你是通过 MaiBot Tool 调用的 DeepSeek 助手。任务：联网搜索并总结答案。"
@@ -1052,7 +1244,10 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
                 request_scope=_request_scope(kwargs, "search_and_summarize"),
             )
         except Exception as exc:
-            return {"name": "search_and_summarize", "content": self._format_tool_error("搜索失败", exc)}
+            return {
+                "name": "search_and_summarize",
+                "content": self._format_tool_error("搜索失败", exc),
+            }
 
         return {"name": "search_and_summarize", "content": result}
 
@@ -1064,28 +1259,54 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         "fetch_page",
         description="通过网页搜索检索指定公开 URL 并总结可核实的内容，不保证获得全文。无法匹配目标页面时明确失败。",
         parameters=[
-            ToolParameterInfo(name="url", param_type=ToolParamType.STRING, description="要读取的网页 URL", required=True),
-            ToolParameterInfo(name="explanation", param_type=ToolParamType.STRING, description="为什么需要读这个页面", required=False),
             ToolParameterInfo(
-                name="depth", param_type=ToolParamType.STRING, required=False,
-                description="检索档位，省略时使用插件默认值。", enum_values=list(SEARCH_DEPTH_LABELS),
+                name="url",
+                param_type=ToolParamType.STRING,
+                description="要读取的网页 URL",
+                required=True,
+            ),
+            ToolParameterInfo(
+                name="explanation",
+                param_type=ToolParamType.STRING,
+                description="为什么需要读这个页面",
+                required=False,
+            ),
+            ToolParameterInfo(
+                name="depth",
+                param_type=ToolParamType.STRING,
+                required=False,
+                description="检索档位，省略时使用插件默认值。",
+                enum_values=list(SEARCH_DEPTH_LABELS),
             ),
         ],
     )
-    async def handle_fetch_page(self, url: str = "", explanation: str = "", depth: str = "", **kwargs: Any):
+    async def handle_fetch_page(
+        self, url: str = "", explanation: str = "", depth: str = "", **kwargs: Any
+    ):
         """读取网页内容。"""
         if not isinstance(url, str) or not url.strip():
             return {"name": "fetch_page", "content": "请提供要读取的网页 URL。"}
         if not isinstance(explanation, str):
-            return {"name": "fetch_page", "content": "读取页面失败：读取原因必须是文本。"}
+            return {
+                "name": "fetch_page",
+                "content": "读取页面失败：读取原因必须是文本。",
+            }
         if not _is_valid_web_url(url):
-            return {"name": "fetch_page", "content": "请提供有效的 HTTP 或 HTTPS 网页地址。"}
+            return {
+                "name": "fetch_page",
+                "content": "请提供有效的 HTTP 或 HTTPS 网页地址。",
+            }
         if not self.config.search.enabled:
-            return {"name": "fetch_page", "content": "联网搜索已在插件配置中关闭，无法读取网页。"}
+            return {
+                "name": "fetch_page",
+                "content": "联网搜索已在插件配置中关闭，无法读取网页。",
+            }
         url = url.strip()
 
         reason = f"（读取原因：{explanation}）" if explanation.strip() else ""
-        system = "你是通过 MaiBot Tool 调用的 DeepSeek 助手。任务：读取指定网页内容并呈现。"
+        system = (
+            "你是通过 MaiBot Tool 调用的 DeepSeek 助手。任务：读取指定网页内容并呈现。"
+        )
         user_prompt = (
             "请读取以下网页 URL 的公开文本内容，并只基于该 URL 的实际内容回答。\n"
             "必须调用 web_search 工具检索或读取这个 URL；如果无法读取、搜索不到或页面不支持，"
@@ -1106,7 +1327,10 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
                 request_scope=_request_scope(kwargs, "fetch_page"),
             )
         except Exception as exc:
-            return {"name": "fetch_page", "content": self._format_tool_error("读取页面失败", exc)}
+            return {
+                "name": "fetch_page",
+                "content": self._format_tool_error("读取页面失败", exc),
+            }
 
         return {"name": "fetch_page", "content": result}
 
@@ -1125,7 +1349,9 @@ class DeepSeekWebSearcherPlugin(MaiBotPlugin):
         if not self.config.search.enabled:
             return False, "联网搜索已在插件配置中关闭", True
         text = str(kwargs.get("text") or "").strip()
-        query = text.removeprefix("/deepseek_search_test").strip() or "DeepSeek 官方网站"
+        query = (
+            text.removeprefix("/deepseek_search_test").strip() or "DeepSeek 官方网站"
+        )
 
         tools = _build_web_search_tools(self.config, max_uses=2)
         try:
